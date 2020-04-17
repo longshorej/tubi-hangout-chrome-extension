@@ -6,6 +6,8 @@ const videoId = 314542; // @TODO dynamic
 const toleranceMs = 3000;
 
 let lastReportedPosition = undefined;
+let videoPositionEventHandlersInstalled = false;
+let lastTimeUpdate = 0;
 
 function videoCurrentTimeMs(video) {
   return Math.floor(video.currentTime * 1000);
@@ -18,14 +20,25 @@ function reportPosition() {
 
   if (videos.length > 0) {
     const video = videos[0];
-
     const url = `${host}/api/hangouts/${hangoutId}/commands/update-video-position`;
-
+    const currentTimeMs = videoCurrentTimeMs(video);
     const data = JSON.stringify({
       id: videoId,
-      position: videoCurrentTimeMs(video),
+      position: currentTimeMs,
       paused: video.paused
     });
+
+    if (!videoPositionEventHandlersInstalled) {
+      videoPositionEventHandlersInstalled = true;
+
+      video.addEventListener("play", () => reportPosition());
+      video.addEventListener("pause", () => reportPosition());
+      video.addEventListener("timeupdate", () => {
+        if (Math.abs(videoCurrentTimeMs(video) - lastTimeUpdate) >= 1000) {
+          reportPosition();
+        }
+      });
+    }
 
     if (lastReportedPosition === undefined || lastReportedPosition !== data) {
       jQuery.ajax(url, {
@@ -34,6 +47,7 @@ function reportPosition() {
         type: 'POST',
       });
       lastReportedPosition = data;
+      lastTimeUpdate = currentTimeMs;
     };
   }
 }
@@ -129,7 +143,8 @@ function initialize() {
 
         broadcastEvents.close();
 
-        window.setInterval(reportPosition, 3000);
+        reportPosition();
+        //window.setInterval(reportPosition, 5000);
       });
 
       document.body.appendChild(hangoutContainer);
