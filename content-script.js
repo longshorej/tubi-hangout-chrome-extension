@@ -1,24 +1,54 @@
 "use strict";
 
+// constants
 const host = "http://127.0.0.1:8080"; // @TODO host somewhere
-const hangoutId = "ac67a7e3-8f1f-4dd5-bdf5-8ede3bb78cba"; // @TODO dynamic
-const videoId = 314542; // @TODO dynamic
 const toleranceMs = 3000;
 
+// global state (ick)
+let videoPositionEventHandlersInstalled = undefined;
 let lastReportedPosition = undefined;
-let videoPositionEventHandlersInstalled = false;
 let lastTimeUpdate = 0;
+
+function extractHangoutId(location) {
+  let value = undefined;
+
+  const pos = location.indexOf("?");
+
+  if (pos >= 0) {
+    const pairs = location.substring(pos + 1).split("&");
+
+    console.log(`pairs=${pairs}`);
+
+    for (const pair of pairs) {
+      if (pair.startsWith("hangoutId=")) {
+        value = pair.substring(10); // 10 == "hangoutId=".length
+      }
+    }
+  }
+
+  return value;
+}
+
+function extractVideoId(location) {
+  const prefix = "https://tubitv.com/movies/";
+  const l = location.startsWith(prefix) ? location.substring(prefix.length) : location;
+  const parts = l.split('/');
+
+  return parts.length > 0 ? parseInt(parts[0], 10) : undefined;
+}
 
 function videoCurrentTimeMs(video) {
   return Math.floor(video.currentTime * 1000);
 }
 
-function reportPosition() {
-  console.log('reporting position');
+function reportPosition(hangoutId) {
+  const videoId = extractVideoId(window.location.href);
+
+  console.log(`reportPosition(${hangoutId}): videoId=${videoId}`);
 
   const videos = document.getElementsByTagName('video');
 
-  if (videos.length > 0) {
+  if (videoId !== undefined && videos.length > 0) {
     const video = videos[0];
     const url = `${host}/api/hangouts/${hangoutId}/commands/update-video-position`;
     const currentTimeMs = videoCurrentTimeMs(video);
@@ -28,14 +58,14 @@ function reportPosition() {
       paused: video.paused
     });
 
-    if (!videoPositionEventHandlersInstalled) {
-      videoPositionEventHandlersInstalled = true;
+    if (videoPositionEventHandlersInstalled !== videoId) {
+      videoPositionEventHandlersInstalled = videoId;
 
-      video.addEventListener("play", () => reportPosition());
-      video.addEventListener("pause", () => reportPosition());
+      video.addEventListener("play", () => reportPosition(hangoutId));
+      video.addEventListener("pause", () => reportPosition(hangoutId));
       video.addEventListener("timeupdate", () => {
         if (Math.abs(videoCurrentTimeMs(video) - lastTimeUpdate) >= 1000) {
-          reportPosition();
+          reportPosition(hangoutId);
         }
       });
     }
@@ -44,15 +74,19 @@ function reportPosition() {
       jQuery.ajax(url, {
         data: data,
         contentType: 'application/json',
-        type: 'POST',
+        type: 'POST'
       });
       lastReportedPosition = data;
       lastTimeUpdate = currentTimeMs;
     };
+  } else {
+    // try again in some time..
+
+    setTimeout(() => reportPosition(hangoutId), 1000);
   }
 }
 
-function handleBroadcastEvent(event) {
+function handleBroadcastEvent(hangoutId, event) {
   try {
     const parsed = JSON.parse(event.data);
     const type = typeof parsed === 'object' && typeof parsed.type === 'string' ? parsed.type : "";
@@ -60,7 +94,12 @@ function handleBroadcastEvent(event) {
     switch (type) {
       case "VideoPositionUpdated":
         if (typeof parsed.id === 'number' && typeof parsed.position === 'number' && typeof parsed.paused === 'boolean') {
-          console.log(parsed);
+          if (extractVideoId(window.location.href) !== parsed.id) {
+            // video has changed, update URI @TODO probably we can do much better
+            console.log(`video has changed, now ${parsed.id}`);
+
+            window.location.href = `https://tubitv.com/movies/${parsed.id}?hangoutId=${hangoutId}`;
+          }
 
           const videos = document.getElementsByTagName('video');
 
@@ -94,6 +133,11 @@ function handleBroadcastEvent(event) {
 }
 
 function initialize() {
+  const videoId = extractVideoId(window.location.href);
+  const hangoutId = extractHangoutId(window.location.href);
+
+  console.log(`videoId=${videoId} hangoutId=${hangoutId}`);
+
   let checkLoadedInterval = undefined;
 
   const checkLoaded = () => {
@@ -121,30 +165,48 @@ function initialize() {
       hangoutContainer.appendChild(brandLabel);
 
       const hangoutLabel = document.createElement("span");
-      hangoutLabel.innerHTML = "You are currently <strong>Watching</strong>.";
       hangoutContainer.appendChild(hangoutLabel);
+
+      let broadcastEvents = undefined;
+
+      if (hangoutId !== undefined) {
+        hangoutLabel.innerHTML = "You are currently attending a hangout.";
+
+        broadcastEvents = new EventSource(`${host}/api/hangouts/${hangoutId}/events`);
+        broadcastEvents.onmessage = (event) => handleBroadcastEvent(hangoutId, event);
+        broadcastEvents.on
+      }
 
       const hangoutButton = document.createElement("button");
       hangoutButton.type = "button";
-      hangoutButton.innerHTML = "Broadcast";
+      hangoutButton.innerHTML = "Create Hangout";
       hangoutButton.style.float = "right";
       hangoutContainer.appendChild(hangoutButton);
-
-      const broadcastEventsUrl = `${host}/api/hangouts/${hangoutId}/events`;
-      const broadcastEvents = new EventSource(broadcastEventsUrl);
-      broadcastEvents.onmessage = handleBroadcastEvent;
 
       hangoutButton.addEventListener("click", (e) => {
         e.preventDefault();
 
-        hangoutLabel.innerHTML = "You are currently <strong>Broadcasting</strong>.";
-        hangoutContainer.style.backgroundColor = "#00590A";
-        hangoutButton.disabled = true;
+        jQuery.ajax(`${host}/api/hangouts`, {
+          data: JSON.stringify({ name: "TODO" }),
+          contentType: 'application/json',
+          type: 'POST'
+        }).done(data => {
+          if (typeof data === 'object' && data !== undefined && typeof data.id === 'string') {
+            const url = `${host}/hangouts/${data.id}/join`;
 
-        broadcastEvents.close();
+            hangoutLabel.innerHTML = `You are currently hosting a hangout: <a href="${url}" target="_blank" style="color: #FFF; text-decoration: underline;">${url}</a>`;
+            hangoutContainer.style.backgroundColor = "#00590A";
+            hangoutButton.disabled = true;
 
-        reportPosition();
-        //window.setInterval(reportPosition, 5000);
+            if (broadcastEvents !== undefined) {
+              broadcastEvents.close();
+              broadcastEvents = undefined;
+            }
+
+            reportPosition(data.id);
+            //window.setInterval(() => reportPosition(data.id, videoId), 5000);
+          }
+        });
       });
 
       document.body.appendChild(hangoutContainer);
@@ -152,8 +214,6 @@ function initialize() {
       if (checkLoadedInterval !== undefined) {
         window.clearInterval(checkLoadedInterval);
         checkLoadedInterval = undefined;
-
-
       }
     }
   };
