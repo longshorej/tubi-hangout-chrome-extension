@@ -1,7 +1,12 @@
 "use strict";
 
+/**
+ * A hacked together script/POC for a "Tubi Hangouts"
+ * application.
+ */
+
 // constants
-const host = "http://127.0.0.1:8080"; // @TODO host somewhere
+const host = "https://cloud.jasonlongshore.com"; // @TODO host somewhere
 const toleranceMs = 3000;
 
 // global state (ick)
