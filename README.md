@@ -31,6 +31,10 @@ You'll need to manually install the extension.
 * Member lists
 * Chat
 
+## Development
+
+This extension uses a publically hosted instance of the [Hangout Server](https://github.com/longshorej/tubi-hangout-server) to route data between clients, so familiarity with that project will be required if making extensive changes to this extension, adding features, etc.
+
 ## References
 
 * https://developer.chrome.com/extensions/getstarted
