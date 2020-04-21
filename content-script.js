@@ -2,7 +2,7 @@
 
 /**
  * A hacked together script/POC for a "Tubi Hangouts"
- * application.
+ * application, needs proper JS build, modules, etc, etc.
  */
 
 // constants
@@ -172,21 +172,21 @@ function initialize() {
       const hangoutLabel = document.createElement("span");
       hangoutContainer.appendChild(hangoutLabel);
 
-      let broadcastEvents = undefined;
-
-      if (hangoutId !== undefined) {
-        hangoutLabel.innerHTML = "You are currently attending a hangout.";
-
-        broadcastEvents = new EventSource(`${host}/api/hangouts/${hangoutId}/events`);
-        broadcastEvents.onmessage = (event) => handleBroadcastEvent(hangoutId, event);
-        broadcastEvents.on
-      }
-
       const hangoutButton = document.createElement("button");
       hangoutButton.type = "button";
       hangoutButton.innerHTML = "Create Hangout";
       hangoutButton.style.float = "right";
       hangoutContainer.appendChild(hangoutButton);
+
+      let broadcastEvents = undefined;
+
+      if (hangoutId !== undefined) {
+        hangoutLabel.innerHTML = "You are currently attending a hangout.";
+        hangoutButton.disabled = true;
+
+        broadcastEvents = new EventSource(`${host}/api/hangouts/${hangoutId}/events`);
+        broadcastEvents.onmessage = (event) => handleBroadcastEvent(hangoutId, event);
+      }
 
       hangoutButton.addEventListener("click", (e) => {
         e.preventDefault();

@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "description": "Watch Tubi with other people!",
   "permissions": ["activeTab", "declarativeContent", "storage"],
-  "background": {
-    "scripts": ["background.js"],
-    "persistent": true
-  },
   "content_scripts": [
     {
       "matches": ["https://tubitv.com/*"],
@@ -14,24 +10,5 @@
       "run_at": "document_start"
     }
   ],
-  "page_action": {
-    "default_popup": "popup.html"
-  },
-  "manifest_version": 2,
-
-
-
-
-
-
-
-
-
-
-
-
-
-  "permissions": [
-    "*://127.0.0.1:*"
-  ]
+  "manifest_version": 2
 }
