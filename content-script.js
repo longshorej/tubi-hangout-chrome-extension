@@ -108,16 +108,16 @@ function handleBroadcastEvent(hangoutId, event) {
 
             // reconcile status from server with local player status
 
+            if (Math.abs(videoCurrentTimeMs(video) - parsed.position) > toleranceMs) {
+              video.currentTime = parsed.position / 1000;
+            }
+
             if (parsed.paused && !video.paused) {
               video.pause();
             }
 
             if (!parsed.paused && video.paused) {
               video.play();
-            }
-
-            if (Math.abs(videoCurrentTimeMs(video) - parsed.position) > toleranceMs) {
-              video.currentTime = parsed.position / 1000;
             }
           }
         }
