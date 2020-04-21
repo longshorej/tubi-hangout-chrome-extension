@@ -7,7 +7,7 @@
 
 // constants
 const host = "https://cloud.jasonlongshore.com"; // @TODO host somewhere
-const toleranceMs = 3000;
+const toleranceMs = 1000;
 
 // global state (ick)
 let videoPositionEventHandlersInstalled = undefined;
