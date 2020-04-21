@@ -23,8 +23,9 @@ You'll need to manually install the extension.
 
 ## Other Ideas
 
+* Real infrastructure for backend
 * Consider ad serving experience
-* Persistence
+* Persistence (both frontend (extension) and backend)
 * Tests
 * Member lists
 * Chat
