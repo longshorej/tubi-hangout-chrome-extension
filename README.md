@@ -17,9 +17,10 @@ You'll need to manually install the extension.
 6) There should be a "Tubi Hangout" banner at the bottom of the screen. On the
    right side of this banner, select "Create Hangout."
 7) Start playing the movie
-8) Copy the URL from the bottom left of the screen to another computer, and
-   visit it. Note that playback is reasonably synced (hopefully). Also note
-   that pauses on the first computer pause in sync for the entire hangout.
+8) Open the URL from the bottom left of the screen on another browser/computer
+   with the extension installed. Playback should be synced to a reasonable 
+   degree, as well as play/pause, seek. Currently, only the browser that
+   initiated the hangout can control video playback.
 
 ## Other Ideas
 
